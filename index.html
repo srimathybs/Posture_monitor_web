@@ -657,22 +657,21 @@ function handleUpload(e){
   const f = e.target.files[0];
   if(!f) return;
 
-  // revoke old blob
   if(_uploadedBlobURL){ URL.revokeObjectURL(_uploadedBlobURL); _uploadedBlobURL=null; }
 
   _uploadedFileName = f.name;
   _uploadedBlobURL  = URL.createObjectURL(f);
 
-  // pre-create the video element and load it now so metadata is ready
-  if(_offscreenVid){ _offscreenVid.pause(); _offscreenVid.src=''; }
-  _offscreenVid = document.createElement('video');
-  _offscreenVid.src         = _uploadedBlobURL;
-  _offscreenVid.muted       = true;
-  _offscreenVid.loop        = true;
-  _offscreenVid.playsInline = true;
-  _offscreenVid.crossOrigin = 'anonymous';
-  _offscreenVid.preload     = 'auto';
-  _offscreenVid.load();
+  // Create video element — NO crossOrigin for local blob URLs
+  if(_offscreenVid){ _offscreenVid.pause(); _offscreenVid.src=''; _offscreenVid=null; }
+  _offscreenVid            = document.createElement('video');
+  _offscreenVid.muted      = true;
+  _offscreenVid.playsInline= true;
+  _offscreenVid.preload    = 'auto';
+  // Append to body hidden so browser fully decodes it
+  _offscreenVid.style.cssText = 'position:fixed;left:-9999px;width:640px;height:480px;';
+  document.body.appendChild(_offscreenVid);
+  _offscreenVid.src = _uploadedBlobURL;
 
   document.getElementById('uarea').innerHTML = `
     <div style="font-size:20px;margin-bottom:4px">✅</div>
@@ -756,60 +755,59 @@ async function startVideoFile(){
   const vid = _offscreenVid;
   if(!vid || !_uploadedBlobURL){
     document.getElementById('ldmsg').innerHTML=
-      `<div style="color:var(--warn);text-align:center">⚠️ No video loaded</div>`;
+      `<div style="color:var(--warn);text-align:center;padding:20px">⚠️ No video loaded. Please select a file.</div>`;
     return;
   }
 
+  document.getElementById('ldmsg').style.display='flex';
   document.getElementById('ldmsg').innerHTML=
     `<div style="color:var(--accent2);text-align:center">
       <div style="font-size:22px;margin-bottom:6px">⏳</div>
       Loading video…<br>
-      <span style="font-size:10px;color:var(--muted)">Preparing frames for MediaPipe</span>
+      <span style="font-size:10px;color:var(--muted)">Preparing MediaPipe analysis</span>
     </div>`;
 
-  // Wait until video has enough data
+  // Poll readyState — more reliable than event listeners across browsers
   await new Promise((resolve, reject)=>{
-    if(vid.readyState >= 2){ resolve(); return; }
-    vid.onloadeddata = ()=> resolve();
-    vid.onerror = ()=> reject(new Error('Video load error'));
-    setTimeout(()=> reject(new Error('Timeout loading video')), 15000);
+    let attempts = 0;
+    const check = setInterval(()=>{
+      attempts++;
+      if(vid.readyState >= 2){
+        clearInterval(check);
+        resolve();
+      } else if(attempts > 150){ // 15 seconds
+        clearInterval(check);
+        reject(new Error('Video took too long to load. Try a smaller MP4 file.'));
+      }
+    }, 100);
+    vid.onerror = (e)=>{ clearInterval(check); reject(new Error('Cannot read video file.')); };
   }).catch(err=>{
     document.getElementById('ldmsg').innerHTML=
-      `<div style="color:var(--bad);text-align:center">❌ ${err.message}<br>
-      <span style="font-size:10px">Try MP4 (H.264) format</span></div>`;
+      `<div style="color:var(--bad);text-align:center;padding:20px">❌ ${err.message}</div>`;
     throw err;
   });
 
-  // Set canvas to video dimensions
   const vw = vid.videoWidth  || 640;
   const vh = vid.videoHeight || 480;
   canvas.width  = vw;
   canvas.height = vh;
+  vid.style.width  = vw+'px';
+  vid.style.height = vh+'px';
 
-  // Create offscreen canvas — THIS is what we send to MediaPipe
-  // (avoids CORS/taint issues with video elements directly)
+  // Offscreen canvas — draw frames here, send to MediaPipe
   _offscreenCanvas = document.createElement('canvas');
   _offscreenCanvas.width  = vw;
   _offscreenCanvas.height = vh;
-  _offscreenCtx = _offscreenCanvas.getContext('2d');
+  _offscreenCtx = _offscreenCanvas.getContext('2d', {willReadFrequently:true});
 
-  // activeVid points to the video for render()
   activeVid = vid;
-
-  // Warm up MediaPipe by sending one blank frame first
-  _offscreenCtx.fillStyle = '#000';
-  _offscreenCtx.fillRect(0, 0, vw, vh);
-  try{
-    await poseInst.send({image: _offscreenCanvas});
-    await faceInst.send({image: _offscreenCanvas});
-  }catch(e){}
 
   document.getElementById('ldmsg').style.display='none';
   document.getElementById('trkbg').textContent='Tracking Active';
   document.getElementById('trkbg').style.color='var(--good)';
   active = true;
 
-  await vid.play();
+  try{ await vid.play(); }catch(e){ console.warn('play():', e.message); }
   loopVideo();
 }
 
@@ -828,17 +826,24 @@ async function loop(){
   requestAnimationFrame(loop);
 }
 
-// ── VIDEO FILE LOOP (frame-by-frame via offscreen canvas) ──
+// ── VIDEO FILE LOOP ──────────────────────────────────────
 let _vidLoopBusy = false;
 async function loopVideo(){
   if(!active) return;
-  if(!_offscreenVid || _offscreenVid.ended){
-    if(_offscreenVid && _offscreenVid.ended){
-      document.getElementById('trkbg').textContent='Video ended';
-      document.getElementById('trkbg').style.color='var(--warn)';
+
+  const vid = _offscreenVid;
+  if(!vid){ requestAnimationFrame(loopVideo); return; }
+
+  // When video ends, loop it manually
+  if(vid.ended || vid.paused){
+    if(vid.ended){
+      vid.currentTime = 0;
+      try{ await vid.play(); }catch(e){}
     }
+    requestAnimationFrame(loopVideo);
     return;
   }
+
   if(_vidLoopBusy){ requestAnimationFrame(loopVideo); return; }
   _vidLoopBusy = true;
 
@@ -847,16 +852,15 @@ async function loopVideo(){
   if(now-fpsT>=1000){ fps=fpsF; fpsF=0; fpsT=now; document.getElementById('fpsbg').textContent=`${fps} FPS`; }
 
   try{
-    if(_offscreenVid.readyState >= 2 && !_offscreenVid.paused){
-      // Draw current video frame into offscreen canvas
-      _offscreenCtx.drawImage(_offscreenVid, 0, 0, _offscreenCanvas.width, _offscreenCanvas.height);
-      // Send canvas (not video element) to MediaPipe — avoids all taint/CORS issues
+    if(vid.readyState >= 2){
+      // Stamp frame onto offscreen canvas then send canvas to MediaPipe
+      _offscreenCtx.drawImage(vid, 0, 0, _offscreenCanvas.width, _offscreenCanvas.height);
       await poseInst.send({image: _offscreenCanvas});
       await faceInst.send({image: _offscreenCanvas});
       render();
       compute();
     }
-  }catch(e){ console.warn('Frame error:', e.message); }
+  }catch(e){ console.warn('loopVideo frame error:', e.message); }
 
   _vidLoopBusy = false;
   requestAnimationFrame(loopVideo);
@@ -1762,9 +1766,13 @@ function endSession(){
   clearInterval(timerInt);
   if(activeVid){
     if(activeVid.srcObject) activeVid.srcObject.getTracks().forEach(t=>t.stop());
-    else { activeVid.pause(); activeVid.src=''; }
+    else { try{ activeVid.pause(); }catch(e){} }
   }
-  if(_offscreenVid){ _offscreenVid.pause(); }
+  if(_offscreenVid){
+    try{ _offscreenVid.pause(); }catch(e){}
+    if(_offscreenVid.parentNode) _offscreenVid.parentNode.removeChild(_offscreenVid);
+    _offscreenVid=null;
+  }
   exportReport();
   document.getElementById('monitor-screen').style.display='none';
   document.getElementById('setup-screen').style.display='flex';
