@@ -106,7 +106,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
   font-family:'DM Mono',monospace;color:var(--muted);letter-spacing:1px;text-transform:uppercase;
   display:flex;align-items:center;justify-content:space-between;}
 .vcont{position:relative;flex:1;background:#000;overflow:hidden;min-height:0;}
-#inputVideo,#uploadedVideo{position:absolute;width:1px;height:1px;opacity:0;}
+#inputVideo{position:absolute;width:1px;height:1px;opacity:0;}
 #poseCanvas{width:100%;height:100%;display:block;}
 .voverlay{position:absolute;bottom:0;left:0;right:0;padding:8px 12px;
   background:linear-gradient(transparent,rgba(0,0,0,0.85));display:flex;gap:6px;align-items:center;}
@@ -249,9 +249,13 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
         <div class="mi">🎞️</div><div class="ml">Upload Video</div><div class="md">Analyse pre-recorded</div>
       </div>
     </div>
-    <div class="uarea" id="uarea" onclick="document.getElementById('vup').click()">
+    <div class="uarea" id="uarea"
+      onclick="document.getElementById('vup').click()"
+      ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+      ondragleave="this.style.borderColor=''"
+      ondrop="event.preventDefault();this.style.borderColor='';if(event.dataTransfer.files[0])handleUpload({target:{files:event.dataTransfer.files}})">
       <div style="font-size:26px;margin-bottom:6px">📁</div>
-      <div style="font-size:13px;font-weight:600;margin-bottom:3px">Drop video file here</div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:3px">Click or drag video here</div>
       <div style="font-size:11px;color:var(--muted)">MP4, WebM, MOV</div>
       <input type="file" id="vup" accept="video/*" onchange="handleUpload(event)"/>
     </div>
@@ -304,7 +308,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
           <div>Loading MediaPipe…<br><span style="font-size:10px;color:var(--muted)">FaceMesh 468pt + Pose models</span></div>
         </div>
         <video id="inputVideo" autoplay muted playsinline style="position:absolute;width:1px;height:1px;opacity:0;"></video>
-        <video id="uploadedVideo" style="position:absolute;width:1px;height:1px;opacity:0;" loop></video>
+        <!-- uploadedVideo created dynamically by JS -->
         <canvas id="poseCanvas"></canvas>
         <div class="voverlay">
           <span class="fbadge">FaceMesh·468lm Tessellation + Iris</span>
@@ -642,69 +646,100 @@ function selMode(m){
   document.getElementById('mode-upload').classList.toggle('active',m==='upload');
   document.getElementById('uarea').classList.toggle('visible',m==='upload');
 }
+// ── VIDEO UPLOAD ─────────────────────────────────────────
+let _uploadedBlobURL = null;
+let _uploadedFileName = '';
+let _offscreenVid = null;      // dynamically created video element
+let _offscreenCanvas = null;   // canvas we draw frames into for MediaPipe
+let _offscreenCtx = null;
+
 function handleUpload(e){
-  const f=e.target.files[0]; if(!f)return;
-  document.getElementById('uarea').innerHTML=`<div style="font-size:13px;font-weight:600;color:var(--good)">✅ ${f.name}</div>`;
-  document.getElementById('uploadedVideo').src=URL.createObjectURL(f);
+  const f = e.target.files[0];
+  if(!f) return;
+
+  // revoke old blob
+  if(_uploadedBlobURL){ URL.revokeObjectURL(_uploadedBlobURL); _uploadedBlobURL=null; }
+
+  _uploadedFileName = f.name;
+  _uploadedBlobURL  = URL.createObjectURL(f);
+
+  // pre-create the video element and load it now so metadata is ready
+  if(_offscreenVid){ _offscreenVid.pause(); _offscreenVid.src=''; }
+  _offscreenVid = document.createElement('video');
+  _offscreenVid.src         = _uploadedBlobURL;
+  _offscreenVid.muted       = true;
+  _offscreenVid.loop        = true;
+  _offscreenVid.playsInline = true;
+  _offscreenVid.crossOrigin = 'anonymous';
+  _offscreenVid.preload     = 'auto';
+  _offscreenVid.load();
+
+  document.getElementById('uarea').innerHTML = `
+    <div style="font-size:20px;margin-bottom:4px">✅</div>
+    <div style="font-size:13px;font-weight:600;color:var(--good)">${f.name}</div>
+    <div style="font-size:10px;color:var(--muted);margin-top:3px">${(f.size/1024/1024).toFixed(1)} MB — ready</div>`;
 }
 
 // ── START ────────────────────────────────────────────────
 async function startMonitoring(){
+  if(cMode==='upload' && !_uploadedBlobURL){
+    alert('Please select a video file first.');
+    return;
+  }
   patient={
-    id:document.getElementById('pid').value||'ANON',
-    name:document.getElementById('pname').value||'Unknown',
-    age:document.getElementById('page').value||'--',
-    ward:document.getElementById('pward').value||'--',
-    cond:document.getElementById('pcond').value||'--',
-    clin:document.getElementById('pclin').value||'--',
+    id:   document.getElementById('pid').value||'ANON',
+    name: document.getElementById('pname').value||'Unknown',
+    age:  document.getElementById('page').value||'--',
+    ward: document.getElementById('pward').value||'--',
+    cond: document.getElementById('pcond').value||'--',
+    clin: document.getElementById('pclin').value||'--',
   };
   document.getElementById('setup-screen').style.display='none';
   document.getElementById('monitor-screen').style.display='block';
   document.getElementById('ptag').textContent=`${patient.name} · ${patient.id}`;
   document.getElementById('hdr-pt').textContent=`${patient.ward} · ${patient.cond}`;
 
-  canvas=document.getElementById('poseCanvas');
-  ctx=canvas.getContext('2d');
-
-  const cont=document.getElementById('vcont');
-  canvas.width=cont.clientWidth||640;
-  canvas.height=cont.clientHeight||480;
+  canvas  = document.getElementById('poseCanvas');
+  ctx     = canvas.getContext('2d');
+  const cont = document.getElementById('vcont');
+  canvas.width  = cont.clientWidth  || 640;
+  canvas.height = cont.clientHeight || 480;
 
   initChart();
-  sessionStart=Date.now();
-  timerInt=setInterval(tickTimer,1000);
+  sessionStart = Date.now();
+  timerInt = setInterval(tickTimer, 1000);
   await initMediaPipe();
 }
 
 // ── MEDIAPIPE ────────────────────────────────────────────
 async function initMediaPipe(){
-  poseInst=new Pose({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`});
-  poseInst.setOptions({modelComplexity:1,smoothLandmarks:true,
-    enableSegmentation:false,minDetectionConfidence:0.55,minTrackingConfidence:0.55});
-  poseInst.onResults(r=>{poseResults=r;});
+  poseInst = new Pose({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`});
+  poseInst.setOptions({modelComplexity:1, smoothLandmarks:true,
+    enableSegmentation:false, minDetectionConfidence:0.5, minTrackingConfidence:0.5});
+  poseInst.onResults(r=>{ poseResults=r; });
 
-  faceInst=new FaceMesh({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${f}`});
-  faceInst.setOptions({maxNumFaces:1,refineLandmarks:true,
-    minDetectionConfidence:0.55,minTrackingConfidence:0.55});
-  faceInst.onResults(r=>{faceResults=r;});
+  faceInst = new FaceMesh({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${f}`});
+  faceInst.setOptions({maxNumFaces:1, refineLandmarks:true,
+    minDetectionConfidence:0.5, minTrackingConfidence:0.5});
+  faceInst.onResults(r=>{ faceResults=r; });
 
   if(cMode==='webcam') await startWebcam();
-  else startVideoFile();
+  else await startVideoFile();
 }
 
 async function startWebcam(){
   try{
-    const stream=await navigator.mediaDevices.getUserMedia(
+    const stream = await navigator.mediaDevices.getUserMedia(
       {video:{width:{ideal:1280},height:{ideal:720},facingMode:'user'}});
-    activeVid=document.getElementById('inputVideo');
-    activeVid.srcObject=stream;
-    activeVid.onloadedmetadata=()=>{
-      canvas.width=activeVid.videoWidth;
-      canvas.height=activeVid.videoHeight;
+    activeVid = document.getElementById('inputVideo');
+    activeVid.srcObject = stream;
+    activeVid.onloadedmetadata = ()=>{
+      canvas.width  = activeVid.videoWidth;
+      canvas.height = activeVid.videoHeight;
       document.getElementById('ldmsg').style.display='none';
       document.getElementById('trkbg').textContent='Tracking Active';
       document.getElementById('trkbg').style.color='var(--good)';
-      active=true;
+      active = true;
       loop();
     };
   }catch(e){
@@ -717,36 +752,114 @@ async function startWebcam(){
   }
 }
 
-function startVideoFile(){
-  activeVid=document.getElementById('uploadedVideo');
-  activeVid.play();
-  activeVid.onloadedmetadata=()=>{
-    canvas.width=activeVid.videoWidth||640;
-    canvas.height=activeVid.videoHeight||480;
-    document.getElementById('ldmsg').style.display='none';
-    document.getElementById('trkbg').textContent='Tracking Active';
-    document.getElementById('trkbg').style.color='var(--good)';
-    active=true;
-    loop();
-  };
+async function startVideoFile(){
+  const vid = _offscreenVid;
+  if(!vid || !_uploadedBlobURL){
+    document.getElementById('ldmsg').innerHTML=
+      `<div style="color:var(--warn);text-align:center">⚠️ No video loaded</div>`;
+    return;
+  }
+
+  document.getElementById('ldmsg').innerHTML=
+    `<div style="color:var(--accent2);text-align:center">
+      <div style="font-size:22px;margin-bottom:6px">⏳</div>
+      Loading video…<br>
+      <span style="font-size:10px;color:var(--muted)">Preparing frames for MediaPipe</span>
+    </div>`;
+
+  // Wait until video has enough data
+  await new Promise((resolve, reject)=>{
+    if(vid.readyState >= 2){ resolve(); return; }
+    vid.onloadeddata = ()=> resolve();
+    vid.onerror = ()=> reject(new Error('Video load error'));
+    setTimeout(()=> reject(new Error('Timeout loading video')), 15000);
+  }).catch(err=>{
+    document.getElementById('ldmsg').innerHTML=
+      `<div style="color:var(--bad);text-align:center">❌ ${err.message}<br>
+      <span style="font-size:10px">Try MP4 (H.264) format</span></div>`;
+    throw err;
+  });
+
+  // Set canvas to video dimensions
+  const vw = vid.videoWidth  || 640;
+  const vh = vid.videoHeight || 480;
+  canvas.width  = vw;
+  canvas.height = vh;
+
+  // Create offscreen canvas — THIS is what we send to MediaPipe
+  // (avoids CORS/taint issues with video elements directly)
+  _offscreenCanvas = document.createElement('canvas');
+  _offscreenCanvas.width  = vw;
+  _offscreenCanvas.height = vh;
+  _offscreenCtx = _offscreenCanvas.getContext('2d');
+
+  // activeVid points to the video for render()
+  activeVid = vid;
+
+  // Warm up MediaPipe by sending one blank frame first
+  _offscreenCtx.fillStyle = '#000';
+  _offscreenCtx.fillRect(0, 0, vw, vh);
+  try{
+    await poseInst.send({image: _offscreenCanvas});
+    await faceInst.send({image: _offscreenCanvas});
+  }catch(e){}
+
+  document.getElementById('ldmsg').style.display='none';
+  document.getElementById('trkbg').textContent='Tracking Active';
+  document.getElementById('trkbg').style.color='var(--good)';
+  active = true;
+
+  await vid.play();
+  loopVideo();
 }
 
-// ── MAIN LOOP ────────────────────────────────────────────
+// ── MAIN LOOP (webcam) ────────────────────────────────────
 async function loop(){
-  if(!active)return;
-
+  if(!active) return;
   fpsF++;
-  const now=Date.now();
-  if(now-fpsT>=1000){fps=fpsF;fpsF=0;fpsT=now;document.getElementById('fpsbg').textContent=`${fps} FPS`;}
-
+  const now = Date.now();
+  if(now-fpsT>=1000){ fps=fpsF; fpsF=0; fpsT=now; document.getElementById('fpsbg').textContent=`${fps} FPS`; }
   if(activeVid && activeVid.readyState>=2){
     await poseInst.send({image:activeVid});
     await faceInst.send({image:activeVid});
   }
-
   render();
   compute();
   requestAnimationFrame(loop);
+}
+
+// ── VIDEO FILE LOOP (frame-by-frame via offscreen canvas) ──
+let _vidLoopBusy = false;
+async function loopVideo(){
+  if(!active) return;
+  if(!_offscreenVid || _offscreenVid.ended){
+    if(_offscreenVid && _offscreenVid.ended){
+      document.getElementById('trkbg').textContent='Video ended';
+      document.getElementById('trkbg').style.color='var(--warn)';
+    }
+    return;
+  }
+  if(_vidLoopBusy){ requestAnimationFrame(loopVideo); return; }
+  _vidLoopBusy = true;
+
+  fpsF++;
+  const now = Date.now();
+  if(now-fpsT>=1000){ fps=fpsF; fpsF=0; fpsT=now; document.getElementById('fpsbg').textContent=`${fps} FPS`; }
+
+  try{
+    if(_offscreenVid.readyState >= 2 && !_offscreenVid.paused){
+      // Draw current video frame into offscreen canvas
+      _offscreenCtx.drawImage(_offscreenVid, 0, 0, _offscreenCanvas.width, _offscreenCanvas.height);
+      // Send canvas (not video element) to MediaPipe — avoids all taint/CORS issues
+      await poseInst.send({image: _offscreenCanvas});
+      await faceInst.send({image: _offscreenCanvas});
+      render();
+      compute();
+    }
+  }catch(e){ console.warn('Frame error:', e.message); }
+
+  _vidLoopBusy = false;
+  requestAnimationFrame(loopVideo);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1233,8 +1346,10 @@ const MESH_TRIS = (()=>{
 function render(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  if(activeVid&&activeVid.readyState>=2){
-    ctx.drawImage(activeVid,0,0,canvas.width,canvas.height);
+  if(cMode==='upload' && _offscreenCanvas){
+    ctx.drawImage(_offscreenCanvas, 0, 0, canvas.width, canvas.height);
+  } else if(activeVid && activeVid.readyState>=2){
+    ctx.drawImage(activeVid, 0, 0, canvas.width, canvas.height);
   } else {
     ctx.fillStyle='#0a0f1e';
     ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -1643,8 +1758,13 @@ function showToast(){
 // ── END / EXPORT ────────────────────────────────────────
 function endSession(){
   active=false;
+  _vidLoopBusy=false;
   clearInterval(timerInt);
-  if(activeVid&&activeVid.srcObject)activeVid.srcObject.getTracks().forEach(t=>t.stop());
+  if(activeVid){
+    if(activeVid.srcObject) activeVid.srcObject.getTracks().forEach(t=>t.stop());
+    else { activeVid.pause(); activeVid.src=''; }
+  }
+  if(_offscreenVid){ _offscreenVid.pause(); }
   exportReport();
   document.getElementById('monitor-screen').style.display='none';
   document.getElementById('setup-screen').style.display='flex';
@@ -1672,8 +1792,8 @@ Tracking Engine: MediaPipe Pose (33-lm upper body) + FaceMesh (468-lm + iris tes
 CLINICAL METRICS SUMMARY
 ───────────────────────────────────────────────────────────────
 Average Postural Score  : ${as}/100
-Average Neck Angle (CVA): ${an}°     (Normal: 10–20°)
-Average FHP             : ${af}cm    (Normal: <2.5cm)
+Average Neck Angle (CVA): ${an}°     (Normal: ≥65°)
+Average FHP             : ${af}      (Normal: <1.5 Good)
 Total Blink Count       : ${blinkCount}
 Avg Blink Rate          : ${blinkTimes.length}/min (Normal: 15–20/min)
 Bad Posture Duration    : ${badSec}s
@@ -1682,10 +1802,10 @@ Total Alerts            : ${alertCnt}
 FACE MESH TESSELLATION ENGINE
 ───────────────────────────────────────────────────────────────
 Landmarks tracked       : 468 (FaceMesh) + 11 (upper-body pose)
-Mesh triangles rendered : ${MESH_TRIS.length}
+Mesh triangles rendered : ${(typeof MESH_TRIS!=='undefined'?MESH_TRIS.length:'n/a')}
 Eye EAR landmarks       : R-eye[33,160,158,133,153,144] L-eye[263,387,385,362,380,373]
 Iris tracking           : Refined landmarks 468 (R), 473 (L)
-EAR threshold           : ${EAR_TH} (Soukupová & Čech 2016)
+EAR threshold           : ${earThreshold.toFixed(3)} (Soukupová & Čech 2016)
 Face Yaw method         : Nose-tip(lm1) vs L-cheek(234) / R-cheek(454) asymmetry ratio
 
 KEY POINT LABELS ON CANVAS
@@ -1705,10 +1825,23 @@ ${Number(as)<40?'• HIGH PRIORITY: Immediate physiotherapy referral\n• Ergono
 ═══════════════════════════════════════════════════════════════
 PostureCare Clinical v6 — FaceMesh Tessellation Engine
 ${new Date().toISOString()}`.trim();
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));
-  a.download=`PostureCare_${patient.id}_${Date.now()}.txt`;
-  a.click();
+  try{
+    const blob=new Blob([txt],{type:'text/plain;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`PostureCare_${patient.id||'session'}_${new Date().toISOString().slice(0,10)}.txt`;
+    a.style.display='none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{URL.revokeObjectURL(url);document.body.removeChild(a);},2000);
+    // brief visual confirmation
+    const btn=document.querySelector('.btnex');
+    if(btn){const orig=btn.textContent;btn.textContent='✅ Downloaded!';btn.style.background='var(--good)';setTimeout(()=>{btn.textContent=orig;btn.style.background='';},2500);}
+  }catch(err){
+    console.error('PostureCare export error:',err);
+    alert('Export failed: '+err.message);
+  }
 }
 </script>
 </body>
