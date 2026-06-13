@@ -276,7 +276,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
       <div class="eye-row">
         <div class="edot" id="edL" title="Left Eye EAR"></div>
         <div class="edot" id="edR" title="Right Eye EAR"></div>
-        <span class="etxt">EYES &nbsp;|&nbsp; Blinks: <span id="bct" style="color:var(--accent2)">0</span> &nbsp;|&nbsp; <span id="brt" style="color:var(--accent2)">--</span>/min &nbsp;|&nbsp; EAR: <span id="earlv" style="color:var(--accent2)">--</span></span>
+        <span class="etxt">EYES &nbsp;|&nbsp; Blinks: <span id="bct" style="color:var(--accent2)">0</span> &nbsp;|&nbsp; <span id="brt" style="color:var(--accent2)">--</span>/min &nbsp;|&nbsp; Eye Level: <span id="earlv" style="color:var(--accent2)">--</span></span>
       </div>
       <div class="sbar-r">
         <span class="ptag" id="ptag">—</span>
@@ -295,8 +295,8 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
       <!-- Mesh legend -->
       <div class="mesh-legend">
         <div class="mleg-item"><div class="mleg-line" style="background:rgba(6,182,212,0.6)"></div>Face mesh</div>
-        <div class="mleg-item"><div class="mleg-line" style="background:#f59e0b;height:2px;width:14px;border-radius:1px"></div>R-eye EAR</div>
-        <div class="mleg-item"><div class="mleg-line" style="background:#818cf8;height:2px;width:14px;border-radius:1px"></div>L-eye EAR</div>
+        <div class="mleg-item"><div class="mleg-line" style="background:#f59e0b;height:2px;width:14px;border-radius:1px"></div>Eye level</div>
+        <div class="mleg-item"><div class="mleg-line" style="background:#818cf8;height:2px;width:14px;border-radius:1px"></div>Blink det.</div>
         <div class="mleg-item"><div class="mleg-dot" style="background:#ef4444"></div>Iris</div>
         <div class="mleg-item"><div class="mleg-dot" style="background:#10b981"></div>Key pts</div>
         <div class="mleg-item"><div class="mleg-dot" style="background:#f472b6"></div>Shoulders</div>
@@ -348,7 +348,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
         <div class="mc"><div class="mlbl">Head Tilt (Roll)</div><div class="mv good" id="m-ht">--°</div><div class="mref">Normal &lt;3°</div><div class="mbar"><div class="mbarf" id="mb-ht" style="width:10%;background:var(--good)"></div></div></div>
         <div class="mc"><div class="mlbl">Fwd Head (FHP)</div><div class="mv good" id="m-fhp">--</div><div class="mref">Normal &lt;1.5 (chin-gap)</div><div class="mbar"><div class="mbarf" id="mb-fhp" style="width:20%;background:var(--good)"></div></div></div>
         <div class="mc"><div class="mlbl">Face Yaw</div><div class="mv good" id="m-yaw">--°</div><div class="mref">Normal &lt;10°</div><div class="mbar"><div class="mbarf" id="mb-yaw" style="width:10%;background:var(--good)"></div></div></div>
-        <div class="mc"><div class="mlbl">EAR (FaceMesh)</div><div class="mv good" id="m-ear">--</div><div class="mref">Open &gt;0.20</div><div class="mbar"><div class="mbarf" id="mb-ear" style="width:65%;background:var(--good)"></div></div></div>
+        <div class="mc"><div class="mlbl">Eye Level (Seat Height)</div><div class="mv good" id="m-ear">--</div><div class="mref">Normal: Mid 0.40–0.60</div><div class="mbar"><div class="mbarf" id="mb-ear" style="width:65%;background:var(--good)"></div></div></div>
       </div>
 
       <div class="gsec">
@@ -383,12 +383,12 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
           <div class="gval good" id="gv-fhp">--</div>
         </div>
         <div class="grow">
-          <div class="gico">👁️</div>
+          <div class="gico">📏</div>
           <div class="ginf">
-            <div class="gnm">Eye Aspect Ratio — EAR (FaceMesh 6-pt)</div>
-            <div class="gds">R-eye lm 33,160,158,133,153,144 · L-eye lm 263,387,385,362,380,373. Adaptive threshold.</div>
+            <div class="gnm">Eye Level — Seat Height Proxy</div>
+            <div class="gds">Iris midpoint Y-position (normalised 0–1, top→bottom). Reflects sitting height relative to camera. Low Y = sitting too high; High Y = sitting too low. Equal-weight contributor to posture score.</div>
             <div class="gtrk"><div class="gfill" id="g-ear" style="width:65%"></div></div>
-            <div class="gzones"><span class="gz" style="flex:1;color:var(--bad)">0–0.20 Closed</span><span class="gz" style="flex:1;text-align:center;color:var(--good)">0.20–0.40 Open</span><span class="gz" style="flex:1;text-align:right;color:var(--warn)">&gt;0.40 Wide</span></div>
+            <div class="gzones"><span class="gz" style="flex:1;color:var(--bad)">High (&lt;0.38)</span><span class="gz" style="flex:1;text-align:center;color:var(--good)">0.38–0.62 Ideal</span><span class="gz" style="flex:1;text-align:right;color:var(--bad)">Low (&gt;0.62)</span></div>
           </div>
           <div class="gval good" id="gv-ear">--</div>
         </div>
@@ -406,9 +406,9 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
           <div class="gico">⚖️</div>
           <div class="ginf">
             <div class="gnm">Overall Postural Score</div>
-            <div class="gds">Weighted composite: CVA(35%) + FHP(25%) + shoulder(20%) + head roll(10%) + yaw(10%)</div>
+            <div class="gds">Equal-weight scoring: neck angle, shoulder level, head tilt, forward head posture, eye level — each capped at 2 penalty pts (max 10). ≤2 = Good, 3–5 = Fix, &gt;5 = Bad</div>
             <div class="gtrk"><div class="gfill" id="g-sc" style="width:70%"></div></div>
-            <div class="gzones"><span class="gz" style="flex:1;color:var(--bad)">0–40 Poor</span><span class="gz" style="flex:1;text-align:center;color:var(--warn)">40–70 Adjust</span><span class="gz" style="flex:1;text-align:right;color:var(--good)">70–100 Good</span></div>
+            <div class="gzones"><span class="gz" style="flex:1;color:var(--bad)">BAD POSTURE</span><span class="gz" style="flex:1;text-align:center;color:var(--warn)">FIX YOUR POSTURE</span><span class="gz" style="flex:1;text-align:right;color:var(--good)">GOOD POSTURE</span></div>
           </div>
           <div class="gval good" id="gv-sc">70</div>
         </div>
@@ -635,7 +635,7 @@ function getTrend(key, fps_) {
 
 // History arrays for report
 let scoreHist=[], fhpHist=[], neckHist=[];
-let badStart=null, badSec=0, badToast=false;
+let badStart=null, badSec=0, badToast=false, notified=false;
 let alertCnt=0, alertLog=[];
 let lastAlert=0;
 
@@ -1071,18 +1071,62 @@ function getFaceYaw(face){
   return (1 - ratio) * 45;
 }
 
-/* ── COMPOSITE SCORE ─────────────────────────────────────
-   CVA ≥ 65° = good, 53°-65° = caution, < 53° = poor.
-   (Slightly adjusted for frontal-camera proxy scale)
+/* ── PENALTY-BASED SCORING ───────────────────────────────
+   Each of 5 metrics contributes equally: max +2 penalty each.
+   Total max penalty = 10 → score mapped 0–100.
+
+   Penalty table (equal weight):
+     Neck angle > 20°       → +2  "Lift your chin"
+     Neck angle > 10°       → +1  "Slight chin tuck"
+     Shoulder slouch bad    → +2  "Straighten shoulders"
+     Shoulder slouch mild   → +1  "Relax shoulders back"
+     Head tilt outside range→ +2  "Level your head"
+     Forward head > 2.5     → +2  "Pull head back"
+     Forward head > 0.8     → +1  "Slight head forward"
+     Eye level too high/low → +2  "Adjust seat height"
+
+   Label:
+     penalty ≤ 2  → GOOD POSTURE
+     penalty 3–5  → FIX YOUR POSTURE
+     penalty > 5  → BAD POSTURE
+
+   Score 0–100: mapped from penalty (0→100, maxPenalty=10→0)
 */
-function calcScore(cva, sh, fhp, ht, yaw){
-  let s = 100;
-  if(cva < 65) s -= Math.min(35, (65 - cva) * 1.1);
-  if(sh  > 3)  s -= Math.min(20, (sh  - 3)  * 2.9);
-  if(fhp > 1)  s -= Math.min(25, (fhp - 1)  * 8.3);
-  if(ht  > 3)  s -= Math.min(10, (ht  - 3)  * 1.4);
-  if(yaw > 10) s -= Math.min(10, (yaw - 10) * 0.5);
-  return Math.round(Math.max(0, Math.min(100, s)));
+function calcPenalty(neck, sh, fhp, ht, yaw, eyeY){
+  let p = 0;
+  const hints = [];
+
+  // 1. Neck angle (CVA proxy) — weight: max 2
+  const neckAngle = 90 - neck;
+  if(neckAngle > 20)      { p += 2; hints.push('Lift your chin'); }
+  else if(neckAngle > 10) { p += 1; hints.push('Slight chin tuck'); }
+
+  // 2. Shoulder/slouch — weight: max 2
+  const slouchAngle = neck + 90;
+  if(slouchAngle < 160)      { p += 2; hints.push('Straighten shoulders'); }
+  else if(slouchAngle < 165) { p += 1; hints.push('Relax shoulders back'); }
+
+  // 3. Head tilt (roll) — weight: max 2
+  const headTiltAngle = 90 - ht;
+  if(headTiltAngle < 70 || headTiltAngle > 110) { p += 2; hints.push('Level your head'); }
+
+  // 4. Forward head posture — weight: max 2
+  if(fhp > 2.5)      { p += 2; hints.push('Pull head back'); }
+  else if(fhp > 0.8) { p += 1; hints.push('Slight head forward'); }
+
+  // 5. Eye level / seat height — weight: max 2
+  if(typeof eyeY === 'number'){
+    if(eyeY < 0.38)      { p += 2; hints.push('Sitting too high'); }
+    else if(eyeY > 0.62) { p += 2; hints.push('Sitting too low'); }
+  }
+
+  return { penalty: p, hints };
+}
+
+function calcScore(cva, sh, fhp, ht, yaw, eyeY){
+  const { penalty } = calcPenalty(cva, sh, fhp, ht, yaw, eyeY);
+  // Max possible penalty = 10 (5 metrics × 2 each); map to 0–100
+  return Math.round(Math.max(0, Math.min(100, 100 - (penalty / 10) * 100)));
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1100,6 +1144,14 @@ function compute(){
   const rFhp  = lm ? getFHP(lm, face)        : fast.fhp;
   const rYaw  = face? getFaceYaw(face)       : fast.yaw;
 
+  // Eye Y position (normalised) for seat-height check
+  let eyeY = null;
+  if(face && face[FM_LEYE_C] && face[FM_REYE_C]){
+    eyeY = (face[FM_LEYE_C].y + face[FM_REYE_C].y) / 2;
+  } else if(face && face[33] && face[263]){
+    eyeY = (face[33].y + face[263].y) / 2;
+  }
+
   // ── EAR + improved blink detection ──
   const earR = face ? calcEAR(face,R_EYE_IDX) : 0.30;
   const earL = face ? calcEAR(face,L_EYE_IDX) : 0.30;
@@ -1111,7 +1163,7 @@ function compute(){
   // Eye state dots — use adaptive threshold
   document.getElementById('edL').className = `edot${earL < earThreshold ? ' cl':''}`;
   document.getElementById('edR').className = `edot${earR < earThreshold ? ' cl':''}`;
-  document.getElementById('earlv').textContent = earSmooth.toFixed(3);
+  document.getElementById('earlv').textContent = (eyeY !== null) ? (eyeY < 0.38 ? 'HIGH' : eyeY > 0.62 ? 'LOW' : 'IDEAL') : '--';
   // Show blink state visually
   if(!blinkIsOpen){
     document.getElementById('edL').className = 'edot cl';
@@ -1124,9 +1176,13 @@ function compute(){
   const ht    = smooth('ht',    rHt);
   const fhp   = smooth('fhp',   rFhp);
   const yaw   = smooth('yaw',   rYaw);
-  const ear   = smooth('ear',   earSmooth);
-  const rawScore = calcScore(rNeck,rSh,rFhp,rHt,rYaw);
+  const eyeYVal = (eyeY !== null) ? eyeY : 0.50;
+  const ear   = smooth('ear',   eyeYVal);  // repurposed: now tracks eye level (seat height)
+  const rawScore = calcScore(rNeck,rSh,rFhp,rHt,rYaw,eyeY);
   const score = Math.round(smooth('score', rawScore));
+
+  // ── Penalty details (for hints/chips) ──
+  const { penalty, hints: penaltyHints } = calcPenalty(rNeck,rSh,rFhp,rHt,rYaw,eyeY);
 
   // ── Push trend history ──
   pushHistory('neck',  neck);
@@ -1136,28 +1192,27 @@ function compute(){
   pushHistory('yaw',   yaw);
   pushHistory('score', score);
 
-  // ── Classification ──
+  // ── Classification — based on penalty score with equal weightage ──
   let cls,cc,cs;
-  if(score>=70){cls='Good Posture';cc='good';cs='good';}
-  else if(score>=40){cls='Adjust Posture';cc='warn';cs='warn';}
-  else{cls='Poor Posture';cc='bad';cs='bad';}
+  if(penalty <= 2)     { cls='GOOD POSTURE';     cc='good'; cs='good'; }
+  else if(penalty <= 5){ cls='FIX YOUR POSTURE'; cc='warn'; cs='warn'; }
+  else                 { cls='BAD POSTURE';       cc='bad';  cs='bad'; }
 
-  // bad posture timer
-  if(cs==='bad'){
-    if(!badStart) badStart=Date.now();
-    badSec = Math.floor((Date.now()-badStart)/1000);
-    if(badSec>=30&&!badToast){showToast();badToast=true;addAlert('bad','⚠️ Poor posture held for 30s — please adjust position.');}
+  // ── 30-Second Bad Posture Alert ──
+  if(cs === 'bad'){
+    if(!badStart) { badStart = Date.now(); notified = false; }
+    badSec = Math.floor((Date.now() - badStart) / 1000);
+    if(badSec >= 30 && !notified){
+      showToast();
+      notified = true;
+      addAlert('bad','⚠️ Bad posture sustained for 30s — please adjust your position.');
+    }
   } else {
-    if(badStart) badToast=false;
-    badStart=null;
+    badStart = null;
+    notified = false;
   }
 
   scoreHist.push(score); fhpHist.push(fhp); neckHist.push(neck);
-
-  // ── Status bar ──
-  document.getElementById('spill').className = `spill ${cs}`;
-  document.getElementById('stxt').textContent = cls.toUpperCase();
-  document.getElementById('sdot').className = `sdot ${cs}`;
 
   const circ=182.2;
   document.getElementById('srng').setAttribute('stroke-dashoffset',circ-(score/100)*circ);
@@ -1186,30 +1241,31 @@ function compute(){
   sb('mb-fhp', Math.min(100,fhp/6*100), fhp>3?'bad':fhp>1.5?'warn':'good');
   sm('m-yaw',  `${Math.round(yaw)}°`,  yaw>25?'bad':yaw>10?'warn':'good');
   sb('mb-yaw', Math.min(100,yaw/45*100), yaw>25?'bad':yaw>10?'warn':'good');
-  sm('m-ear',  ear.toFixed(3),          ear<0.15?'bad':ear<earThreshold?'warn':'good');
-  sb('mb-ear', Math.min(100,ear/0.45*100), ear<0.15?'bad':ear<earThreshold?'warn':'good');
+  // Eye level display (0.0–1.0 scale, ideal 0.38–0.62)
+  const eyeLevelCls = ear < 0.38 ? 'warn' : ear > 0.62 ? 'warn' : 'good';
+  const eyeLevelLabel = ear < 0.38 ? 'HIGH' : ear > 0.62 ? 'LOW' : 'IDEAL';
+  sm('m-ear', eyeLevelLabel, eyeLevelCls);
+  sb('mb-ear', Math.min(100, ear * 100), eyeLevelCls);
 
   // ── Gauges with prediction text ──
   sg('g-neck','gv-neck',neck,90,  `${Math.round(neck)}°`,  neck<53?'bad':neck<65?'warn':'good', tNeck);
   sg('g-sh',  'gv-sh',  sh,  20,  `${Math.round(sh)}°`,   sh>10?'bad':sh>5?'warn':'good', tSh);
   sg('g-fhp', 'gv-fhp', fhp, 6,   `${fhp.toFixed(1)}`,   fhp>3?'bad':fhp>1.5?'warn':'good', tFhp);
-  sg('g-ear', 'gv-ear', ear, 0.45, ear.toFixed(3),         ear<0.15?'bad':ear<earThreshold?'warn':'good', null);
+  sg('g-ear', 'gv-ear', ear, 1.0, eyeLevelLabel, eyeLevelCls, null);
   sg('g-yaw', 'gv-yaw', yaw, 45,  `${Math.round(yaw)}°`,  yaw>25?'bad':yaw>10?'warn':'good', tYaw);
-  sg('g-sc',  'gv-sc',  score,100, String(score),          score>=70?'good':score>=40?'warn':'bad', tScore);
+  sg('g-sc',  'gv-sc',  score,100, String(score),          cs==='good'?'good':cs==='warn'?'warn':'bad', tScore);
 
-  // ── Chips ──
-  const ch=[];
-  if(neck>20) ch.push('Neck forward');
-  if(fhp>2.5) ch.push('Chin forward');
-  if(sh>5)    ch.push('Uneven shoulders');
-  if(yaw>15)  ch.push('Head turned');
-  if(!blinkIsOpen) ch.push('Blinking');
-  if(blinkTimes.length<8&&sessionStart&&Date.now()-sessionStart>30000) ch.push('Low blink rate');
-  document.getElementById('chips').innerHTML=ch.map(c=>`<span class="chip">${c}</span>`).join('');
+  // ── Chips — show penalty hints ──
+  document.getElementById('chips').innerHTML = penaltyHints.map(c=>`<span class="chip">${c}</span>`).join('');
 
   // ── Blink rate ──
   const bpm=blinkTimes.length;
   document.getElementById('brt').textContent=bpm;
+
+  // ── Status bar ──
+  document.getElementById('spill').className = `spill ${cs}`;
+  document.getElementById('stxt').textContent = cls;
+  document.getElementById('sdot').className = `sdot ${cs}`;
 
   // ── Report sidebar ──
   const as=scoreHist.length?Math.round(scoreHist.reduce((a,b)=>a+b,0)/scoreHist.length):0;
@@ -1223,13 +1279,13 @@ function compute(){
   if(scoreHist.length%30===0) pushChart(score);
 
   const now=Date.now();
-  if(now-lastAlert>12000){
-    genAlert({neck,sh,fhp,yaw,bpm,tNeck,tFhp},score,cls);
+  if(now-lastAlert>4000){
+    genAlert({neck,sh,fhp,yaw,ht,eyeY:eyeYVal,bpm,tNeck,tFhp},score,cls);
     lastAlert=now;
   }
 }
 
-// ── HELPERS ─────────────────────────────────────────────
+
 function sm(id,v,c){const e=document.getElementById(id);e.textContent=v;e.className=`mv ${c}`;}
 function sb(id,p,c){const e=document.getElementById(id);e.style.width=`${p}%`;e.style.background=`var(--${c})`;}
 
@@ -1664,11 +1720,25 @@ function genAlert(m,score,cls){
   else if(m.sh>5)
     msgs.push({sev:'warn', text:`↕ Shoulder tilt ${Math.round(m.sh)}° — relax and level your shoulders.`});
 
+  // Head tilt (roll) — deviation from horizontal
+  if(m.ht>15)
+    msgs.push({sev:'bad',  text:`↗ Head tilt ${Math.round(m.ht)}° — significant lateral head tilt. Keep your head level.`});
+  else if(m.ht>8)
+    msgs.push({sev:'warn', text:`↗ Head tilt ${Math.round(m.ht)}° — slight lateral tilt detected. Try to straighten your head.`});
+
   // FHP index
   if(m.fhp>3)
-    msgs.push({sev:'bad',  text:`➡️ Forward head index ${m.fhp.toFixed(1)} — ears well ahead of shoulders. Gently tuck chin.`});
+    msgs.push({sev:'bad',  text:`➡️ Forward head index ${m.fhp.toFixed(1)} — head well ahead of shoulders. Pull head back.`});
   else if(m.fhp>1.5)
-    msgs.push({sev:'warn', text:`➡️ Forward head index ${m.fhp.toFixed(1)} — ears slightly ahead of shoulders.`});
+    msgs.push({sev:'warn', text:`➡️ Forward head index ${m.fhp.toFixed(1)} — slight forward head. Gently pull head back.`});
+
+  // Eye level / seat height
+  if(typeof m.eyeY === 'number'){
+    if(m.eyeY < 0.38)
+      msgs.push({sev:'warn', text:`📏 Eye level HIGH (${m.eyeY.toFixed(2)}) — you may be sitting too high. Lower your seat.`});
+    else if(m.eyeY > 0.62)
+      msgs.push({sev:'warn', text:`📏 Eye level LOW (${m.eyeY.toFixed(2)}) — you may be sitting too low. Raise your seat.`});
+  }
 
   // Yaw
   if(m.yaw>25)
@@ -1688,7 +1758,12 @@ function genAlert(m,score,cls){
     msgs.push({sev:'good', text:`✅ Score ${score}/100 — posture looks good.`});
 
   if(msgs.length){
-    const p=msgs[Math.floor(Math.random()*msgs.length)];
+    // Pick the most severe first; if tied, rotate through messages
+    const bad  = msgs.filter(x=>x.sev==='bad');
+    const warn = msgs.filter(x=>x.sev==='warn');
+    const good = msgs.filter(x=>x.sev==='good');
+    const pool = bad.length ? bad : warn.length ? warn : good;
+    const p = pool[Math.floor(Math.random()*pool.length)];
     addAlert(p.sev,p.text);
   }
 }
@@ -1732,6 +1807,14 @@ function pushChart(score){
   tChart.data.datasets[0].borderColor=score>=70?'#10b981':score>=40?'#f59e0b':'#ef4444';
   tChart.update('none');
 }
+
+document.addEventListener("contextmenu", e => e.preventDefault());
+
+document.onkeydown = function(e){
+    if(e.keyCode == 123){
+        return false;
+    }
+};
 
 // ── TIMER ───────────────────────────────────────────────
 function tickTimer(){
@@ -1804,6 +1887,7 @@ Average Neck Angle (CVA): ${an}°     (Normal: ≥65°)
 Average FHP             : ${af}      (Normal: <1.5 Good)
 Total Blink Count       : ${blinkCount}
 Avg Blink Rate          : ${blinkTimes.length}/min (Normal: 15–20/min)
+Eye Level (last)        : ${(fast.ear<0.38?'HIGH (sitting too high)':fast.ear>0.62?'LOW (sitting too low)':'IDEAL')} (normalised Y=${fast.ear.toFixed(2)}, ideal 0.38–0.62)
 Bad Posture Duration    : ${badSec}s
 Total Alerts            : ${alertCnt}
 
@@ -1811,9 +1895,11 @@ FACE MESH TESSELLATION ENGINE
 ───────────────────────────────────────────────────────────────
 Landmarks tracked       : 468 (FaceMesh) + 11 (upper-body pose)
 Mesh triangles rendered : ${(typeof MESH_TRIS!=='undefined'?MESH_TRIS.length:'n/a')}
-Eye EAR landmarks       : R-eye[33,160,158,133,153,144] L-eye[263,387,385,362,380,373]
+Eye EAR landmarks       : R-eye[33,160,158,133,153,144] L-eye[263,387,385,362,380,373] (blink detection only)
+Eye Level proxy         : Iris Y-position (lm 468/473), normalised 0–1, ideal 0.38–0.62
 Iris tracking           : Refined landmarks 468 (R), 473 (L)
-EAR threshold           : ${earThreshold.toFixed(3)} (Soukupová & Čech 2016)
+EAR threshold           : ${earThreshold.toFixed(3)} (blink detection only — not a posture metric)
+Scoring system          : 5 metrics × max 2 pts each = 10 max penalty; ≤2=Good, 3–5=Fix, >5=Bad
 Face Yaw method         : Nose-tip(lm1) vs L-cheek(234) / R-cheek(454) asymmetry ratio
 
 KEY POINT LABELS ON CANVAS
