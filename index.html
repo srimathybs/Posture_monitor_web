@@ -1231,8 +1231,8 @@ function compute(){
   tScore.cls = tScore.pred > 0 ? 'good' : tScore.pred < 0 ? 'warn' : 'muted';
 
   // ── Metric panels ── (CVA: higher = better; ≥53 good, 45-53 warn, <45 bad)
-  sm('m-neck', `${Math.round(neck)}°`, neck<53?'bad':neck<65?'warn':'good');
-  sb('mb-neck', Math.min(100,neck/90*100), neck<53?'bad':neck<65?'warn':'good');
+  sm('m-neck', `${Math.round(neck)}°`, neck<25?'bad':neck<45?'warn':'good');
+  sb('mb-neck', Math.min(100,neck/90*100), neck<25?'bad':neck<45?'warn':'good');
   sm('m-sh',   `${Math.round(sh)}°`,   sh>10?'bad':sh>5?'warn':'good');
   sb('mb-sh',  Math.min(100,sh/20*100), sh>10?'bad':sh>5?'warn':'good');
   sm('m-ht',   `${Math.round(ht)}°`,   ht>10?'bad':ht>5?'warn':'good');
