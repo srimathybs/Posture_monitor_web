@@ -365,7 +365,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:12p
         <div class="grow">
           <div class="gico">🙆</div>
           <div class="ginf">
-            <div class="gnm">Shoulder Level — Bilateral Symmetry</div>
+            <div class="gnm">Shoulder Tilt — Bilateral Symmetry</div>
             <div class="gds">atan(|Δy|/|Δx|) of shoulder line from horizontal. Correct formula — no atan2 wrap bug. [JADS 2025]</div>
             <div class="gtrk"><div class="gfill" id="g-sh" style="width:10%"></div></div>
             <div class="gzones"><span class="gz" style="flex:1;color:var(--good)">0–5° Level</span><span class="gz" style="flex:1;text-align:center;color:var(--warn)">5–10° Uneven</span><span class="gz" style="flex:1;text-align:right;color:var(--bad)">10°+ Asymmetric</span></div>
@@ -1248,7 +1248,7 @@ function compute(){
   sb('mb-ear', Math.min(100, ear * 100), eyeLevelCls);
 
   // ── Gauges with prediction text ──
-  sg('g-neck','gv-neck',neck,90,  `${Math.round(neck)}°`,  neck<53?'bad':neck<65?'warn':'good', tNeck);
+  sg('g-neck','gv-neck',neck,90,  `${Math.round(neck)}°`,  neck<25?'bad':neck<45?'warn':'good', tNeck);
   sg('g-sh',  'gv-sh',  sh,  20,  `${Math.round(sh)}°`,   sh>10?'bad':sh>5?'warn':'good', tSh);
   sg('g-fhp', 'gv-fhp', fhp, 6,   `${fhp.toFixed(1)}`,   fhp>3?'bad':fhp>1.5?'warn':'good', tFhp);
   sg('g-ear', 'gv-ear', ear, 1.0, eyeLevelLabel, eyeLevelCls, null);
